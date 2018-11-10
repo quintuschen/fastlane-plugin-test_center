@@ -19,9 +19,13 @@ module Fastlane
             params._values
           )
         end
-        smart_scanner = ::TestCenter::Helper::CorrectingScanHelper.new(params.values)
-        tests_passed = smart_scanner.scan
-        summary = run_summary(params, tests_passed, smart_scanner.retry_total_count)
+        retrying_scan = ::TestCenter::Helper::RetryingScan::Runner.new(params.values)
+        tests_passed = retrying_scan.scan
+        if params[:fail_build] && !tests_passed
+          raise UI.test_failure!('Tests have failed')
+        end
+
+        summary = run_summary(params, tests_passed, retrying_scan.retry_total_count)
         unless Helper.test?
           FastlaneCore::PrintTable.print_values(
             config: summary,
@@ -84,11 +88,12 @@ module Fastlane
         options_to_remove = %i[
           try_count
           batch_count
+          output_files
+          parallelize
           quit_simulators
           testrun_completed_block
           test_without_building
           output_types
-          output_files
         ]
         config = FastlaneCore::Configuration.create(
           Fastlane::Actions::ScanAction.available_options,
@@ -171,6 +176,13 @@ module Fastlane
             env_name: "SCAN_OUTPUT_TYPES",
             description: "Comma separated list of the output types (e.g. html, junit, json, json-compilation-database)",
             default_value: "html,junit"
+          ),
+          FastlaneCore::ConfigItem.new(
+            key: :parallelize,
+            description: 'Run each batch of tests and/or each test target in parallel on its own Simulator',
+            optional: true,
+            is_string: false,
+            default_value: false
           ),
           FastlaneCore::ConfigItem.new(
             key: :testrun_completed_block,

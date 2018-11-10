@@ -13,22 +13,33 @@ module TestCenter
           @scheme = options[:scheme]
           @batch = options[:batch]
           @reportnamer = options[:reportnamer]
+          @xcpretty_json_file_output = ENV['XCPRETTY_JSON_FILE_OUTPUT']
+          @parallelize = options[:parallelize]
 
           before_all
         end
 
-        # TODO: Should we be creating a new interstitial for each batch? yes. 
-        # Should we clear out the result bundles before each batch? --> should 
+        # TODO: Should we be creating a new interstitial for each batch? yes.
+        # Should we clear out the result bundles before each batch? --> should
         # it not be done before all batches? Same with env var for json resports.
         def before_all
           if @result_bundle
             remove_preexisting_test_result_bundles
           end
           set_json_env_if_necessary
+          if @parallelize
+            @original_derived_data_path = ENV['SCAN_DERIVED_DATA_PATH']
+            FileUtils.mkdir_p(@output_directory)
+            ENV['SCAN_DERIVED_DATA_PATH'] = Dir.mktmpdir(nil, @output_directory)
+          end
         end
 
         def after_all
           FastlaneCore::UI.message("resetting JSON ENV var to #{@xcpretty_json_file_output}")
+          ENV['XCPRETTY_JSON_FILE_OUTPUT'] = @xcpretty_json_file_output
+          if @parallelize
+            ENV['SCAN_DERIVED_DATA_PATH'] = @original_derived_data_path
+          end
         end
 
         def remove_preexisting_test_result_bundles
@@ -53,9 +64,7 @@ module TestCenter
 
         def reset_simulators
           destinations = Scan.config[:destination]
-          puts "about to collect the simulators"
           simulators = FastlaneCore::DeviceManager.simulators('iOS')
-          puts "done collecting the simulators"
           simulator_ids_to_reset = []
           destinations.each do |destination|
             destination.split(',').each do |destination_pair|
@@ -66,9 +75,7 @@ module TestCenter
             end
           end
           simulators_to_reset = simulators.each.select { |simulator| simulator_ids_to_reset.include?(simulator.udid) }
-
           simulators_to_reset.each do |simulator|
-            puts "resetting simulator #{simulator.name} with id #{simulator.udid}"
             simulator.reset
           end
         end
@@ -120,6 +127,7 @@ module TestCenter
         def finish_try(try_count)
           send_info_for_try(try_count)
           reset_simulators
+          ENV['SCAN_DERIVED_DATA_PATH'] = Dir.mktmpdir(nil, @output_directory) if @parallelize
           move_test_result_bundle_for_next_run
           set_json_env_if_necessary
           @reportnamer && @reportnamer.increment
