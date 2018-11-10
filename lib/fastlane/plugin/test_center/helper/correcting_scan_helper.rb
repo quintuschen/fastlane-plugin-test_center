@@ -3,6 +3,7 @@ module TestCenter
     require 'fastlane_core/ui/ui.rb'
     require 'plist'
     require 'json'
+    require_relative 'xctestrun_info'
 
     class CorrectingScanHelper
       Parallelization = TestCenter::Helper::RetryingScan::Parallelization
@@ -88,7 +89,12 @@ module TestCenter
       def each_batch
         tests_passed = true
         if @parallelize
-          @parallelizer.setup_simulators(@scan_options[:devices] || Array(@scan_options[:device]))
+          app_infoplist = XCTestrunInfo.new(@test_collector.xctestrun_path)
+          batch_deploymentversions = @test_collector.test_batches.map do |test_batch|
+            testable = test_batch.first.split('/').first.gsub('\\', '')
+            app_infoplist.app_plist_for_testable(testable)['MinimumOSVersion']
+          end
+          @parallelizer.setup_simulators(@scan_options[:devices] || Array(@scan_options[:device]), batch_deploymentversions)
           @parallelizer.setup_pipes_for_fork
 
           @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
@@ -96,6 +102,7 @@ module TestCenter
               @parallelizer.connect_subprocess_endpoint(current_batch_index)
               begin
                 ensure_conflict_free_scanlogging(current_batch_index)
+                @scan_options.delete(:device)
                 @scan_options[:devices] = @parallelizer.devices(current_batch_index)
                 @scan_options[:xctestrun] = @test_collector.xctestrun_path
 
