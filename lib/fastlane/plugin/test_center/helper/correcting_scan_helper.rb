@@ -5,10 +5,11 @@ module TestCenter
     require 'json'
 
     class CorrectingScanHelper
+      Parallelization = TestCenter::Helper::RetryingScan::Parallelization
+
       attr_reader :retry_total_count
 
       def initialize(multi_scan_options)
-        @batch_count = multi_scan_options[:batch_count] || 1
         @output_directory = multi_scan_options[:output_directory] || 'test_results'
         @try_count = multi_scan_options[:try_count]
         @retry_total_count = 0
@@ -16,6 +17,7 @@ module TestCenter
         @given_custom_report_file_name = multi_scan_options[:custom_report_file_name]
         @given_output_types = multi_scan_options[:output_types]
         @given_output_files = multi_scan_options[:output_files]
+        @parallelize = multi_scan_options[:parallelize]
         @scan_options = multi_scan_options.reject do |option, _|
           %i[
             output_directory
@@ -29,35 +31,41 @@ module TestCenter
             testrun_completed_block
             output_types
             output_files
+            parallelize
           ].include?(option)
         end
         @scan_options[:clean] = false
+        @scan_options[:disable_concurrent_testing] = true
         @test_collector = TestCollector.new(multi_scan_options)
         @batch_count = @test_collector.test_batches.size
+        if @parallelize
+          @scan_options.delete(:derived_data_path)
+          @parallelizer = Parallelization.new(@batch_count)
+        end 
       end
 
       def scan
         all_tests_passed = true
         @testables_count = @test_collector.testables.size
-        @test_collector.testables.each do |testable|
-          tests_passed = scan_testable(testable) && tests_passed
+        @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
+          puts "current_batch_index: #{current_batch_index}"
         end
         all_tests_passed = each_batch do |test_batch, current_batch_index|
-        output_directory = @output_directory
+          output_directory = @output_directory
           unless @testables_count == 1
             output_directory_suffix = test_batch.first.split('/').first
             output_directory = File.join(@output_directory, "results-#{output_directory_suffix}")
-        end
+          end
           reset_for_new_testable(output_directory)
           FastlaneCore::UI.header("Starting test run on batch '#{current_batch_index}'")
           @interstitial.batch = current_batch_index
           @interstitial.output_directory = output_directory
           @interstitial.before_all
           testrun_passed = correcting_scan(
-              {
+            {
               only_testing: test_batch,
-                output_directory: output_directory
-              },
+              output_directory: output_directory
+            },
             current_batch_index,
             @reportnamer
           )
@@ -79,25 +87,37 @@ module TestCenter
 
       def each_batch
         tests_passed = true
+        if @parallelize
+          @parallelizer.setup_simulators(@scan_options[:devices] || Array(@scan_options[:device]))
+          @parallelizer.setup_pipes_for_fork
 
-        if reportnamer.includes_html?
-          collate_html_reports(output_directory, reportnamer)
-        end
+          @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
+            fork do
+              @parallelizer.connect_subprocess_endpoint(current_batch_index)
+              begin
+                ensure_conflict_free_scanlogging(current_batch_index)
+                @scan_options[:devices] = @parallelizer.devices(current_batch_index)
+                @scan_options[:xctestrun] = @test_collector.xctestrun_path
 
-        if reportnamer.includes_json?
-          collate_json_reports(output_directory, reportnamer)
-        end
-
-        if @scan_options[:result_bundle]
-          collate_test_result_bundles(output_directory, reportnamer)
-        end
-      end
+                tests_passed = yield(test_batch, current_batch_index)
+              ensure
+                @parallelizer.send_subprocess_result(current_batch_index, tests_passed)
+              end
+              sleep(5) # give time for the xcodebuild command and children 
+              # processes to disconnect from the Simulator subsystems 
+              exit(true) # last command to ensure subprocess ends quickly.
+            end
+          end
+          @parallelizer.wait_for_subprocesses
+          tests_passed = @parallelizer.handle_subprocesses_results && tests_passed
+          @parallelizer.cleanup_simulators
+        else
           @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
             tests_passed = yield(test_batch, current_batch_index)
-      end
+          end
         end
         tests_passed
-        end
+      end
 
       def testrun_output_directory
         if @test_collector.testables.size.one?
@@ -105,15 +125,15 @@ module TestCenter
         else
           File.join(@output_directory, "results-#{testable}")
         end
-        end
+      end
 
       def reset_reportnamer
         @reportnamer = ReportNameHelper.new(
           @given_output_types,
           @given_output_files,
           @given_custom_report_file_name
-          )
-        end
+        )
+      end
 
       def reset_interstitial(output_directory)
         @interstitial = TestCenter::Helper::RetryingScan::Interstitial.new(
@@ -125,7 +145,7 @@ module TestCenter
             }
           )
         )
-        end
+      end
 
       def reset_for_new_testable(output_directory)
         reset_reportnamer
