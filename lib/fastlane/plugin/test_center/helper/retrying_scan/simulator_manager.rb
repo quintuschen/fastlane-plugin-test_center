@@ -142,6 +142,20 @@ module TestCenter
           end
         end
 
+        def ensure_conflict_free_scanlogging(scan_options, batch_index)
+          scan_options[:buildlog_path] = @can_options[:buildlog_path] + "-#{batch_index}"
+        end
+
+        def ensure_devices_cloned_for_testrun_are_used(scan_options, batch_index)
+          scan_options.delete(:device)
+          scan_options[:devices] = devices(batch_index)
+        end
+
+        def setup_scan_options_for_testrun(scan_options, batch_index)
+          ensure_conflict_free_scanlogging(scan_options, batch_index)
+          ensure_devices_cloned_for_testrun_are_used(scan_options, batch_index)
+        end
+
         def setup_pipes_for_fork
           @pipe_endpoints = []
           (0...@batch_count).each do

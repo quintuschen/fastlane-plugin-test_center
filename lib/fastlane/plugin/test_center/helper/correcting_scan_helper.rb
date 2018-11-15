@@ -19,6 +19,7 @@ module TestCenter
         @given_output_types = multi_scan_options[:output_types]
         @given_output_files = multi_scan_options[:output_files]
         @parallelize = multi_scan_options[:parallelize]
+        @test_collector = TestCollector.new(multi_scan_options)
         @scan_options = multi_scan_options.reject do |option, _|
           %i[
             output_directory
@@ -37,12 +38,12 @@ module TestCenter
         end
         @scan_options[:clean] = false
         @scan_options[:disable_concurrent_testing] = true
-        @test_collector = TestCollector.new(multi_scan_options)
+        @scan_options[:xctestrun] = @test_collector.xctestrun_path
         @batch_count = @test_collector.test_batches.size
         if @parallelize
           @scan_options.delete(:derived_data_path)
           @parallelizer = Parallelization.new(@batch_count)
-        end 
+        end
       end
 
       def scan
@@ -82,10 +83,6 @@ module TestCenter
         all_tests_passed
       end
 
-      def ensure_conflict_free_scanlogging(batch_index)
-        @scan_options[:buildlog_path] = @scan_options[:buildlog_path] + "-#{batch_index}"
-      end
-
       def each_batch
         tests_passed = true
         if @parallelize
@@ -101,11 +98,7 @@ module TestCenter
             fork do
               @parallelizer.connect_subprocess_endpoint(current_batch_index)
               begin
-                ensure_conflict_free_scanlogging(current_batch_index)
-                @scan_options.delete(:device)
-                @scan_options[:devices] = @parallelizer.devices(current_batch_index)
-                @scan_options[:xctestrun] = @test_collector.xctestrun_path
-
+                @parallelizer.setup_scan_options_for_testrun(@scan_options, current_batch_index)
                 tests_passed = yield(test_batch, current_batch_index)
               ensure
                 @parallelizer.send_subprocess_result(current_batch_index, tests_passed)
