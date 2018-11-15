@@ -143,7 +143,7 @@ module TestCenter
         end
 
         def ensure_conflict_free_scanlogging(scan_options, batch_index)
-          scan_options[:buildlog_path] = @can_options[:buildlog_path] + "-#{batch_index}"
+          scan_options[:buildlog_path] = scan_options[:buildlog_path] + "-#{batch_index}"
         end
 
         def ensure_devices_cloned_for_testrun_are_used(scan_options, batch_index)
