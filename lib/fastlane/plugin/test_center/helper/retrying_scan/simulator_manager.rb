@@ -45,7 +45,7 @@ module TestCenter
           require 'set'
 
           simulators = Scan::DetectValues.filter_simulators(
-            FastlaneCore::DeviceManager.simulators(requested_os_type).tap do |array|
+            FastlaneCore::DeviceManager.simulators('iOS').tap do |array|
               if array.empty?
                 UI.user_error!(['No', simulator_type_descriptor, 'simulators found on local machine'].reject(&:nil?).join(' '))
               end
