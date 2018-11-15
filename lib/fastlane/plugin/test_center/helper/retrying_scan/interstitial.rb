@@ -129,7 +129,7 @@ module TestCenter
 
         def finish_try(try_count)
           send_info_for_try(try_count)
-          reset_simulators
+          # reset_simulators
           ENV['SCAN_DERIVED_DATA_PATH'] = Dir.mktmpdir if @parallelize
           move_test_result_bundle_for_next_run
           set_json_env_if_necessary
