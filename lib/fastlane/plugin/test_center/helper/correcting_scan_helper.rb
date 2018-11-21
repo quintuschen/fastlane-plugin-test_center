@@ -95,7 +95,7 @@ module TestCenter
           @parallelizer.setup_pipes_for_fork
 
           @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
-            fork do
+            # fork do
               @parallelizer.connect_subprocess_endpoint(current_batch_index)
               begin
                 @parallelizer.setup_scan_options_for_testrun(@scan_options, current_batch_index)
@@ -103,10 +103,10 @@ module TestCenter
               ensure
                 @parallelizer.send_subprocess_result(current_batch_index, tests_passed)
               end
-              sleep(5) # give time for the xcodebuild command and children 
+            #  sleep(5) # give time for the xcodebuild command and children 
               # processes to disconnect from the Simulator subsystems 
-              exit(true) # last command to ensure subprocess ends quickly.
-            end
+            #  exit(true) # last command to ensure subprocess ends quickly.
+            # end
           end
           @parallelizer.wait_for_subprocesses
           tests_passed = @parallelizer.handle_subprocesses_results && tests_passed

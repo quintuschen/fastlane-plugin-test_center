@@ -220,9 +220,11 @@ module TestCenter
 
         def wait_for_subprocesses
           disconnect_subprocess_endpoints # to ensure no blocking on the pipe
-          FastlaneCore::Helper.show_loading_indicator("Scanning in #{@batch_count} batches")
-          Process.waitall
-          FastlaneCore::Helper.hide_loading_indicator
+          # FastlaneCore::Helper.show_loading_indicator("Scanning in #{@batch_count} batches")
+          # Process.waitall
+          # FastlaneCore::Helper.hide_loading_indicator
+          $stdout.reopen(STDOUT)
+          $stderr.reopen(STDERR)
         end
 
         def handle_subprocesses_results
