@@ -167,12 +167,12 @@ module TestCenter
           # mainprocess_reader, = @pipe_endpoints[batch_index]
           # mainprocess_reader.close # we are now in the subprocess
 
-          subprocess_output_dir = Dir.mktmpdir
-          puts "log files written to #{subprocess_output_dir}"
-          subprocess_logfilepath = File.join(subprocess_output_dir, "batchscan_#{batch_index}.log")
-          subprocess_logfile = File.open(subprocess_logfilepath, 'w')
-          $stdout.reopen(subprocess_logfile)
-          $stderr.reopen(subprocess_logfile)
+          # subprocess_output_dir = Dir.mktmpdir
+          # puts "log files written to #{subprocess_output_dir}"
+          # subprocess_logfilepath = File.join(subprocess_output_dir, "batchscan_#{batch_index}.log")
+          # subprocess_logfile = File.open(subprocess_logfilepath, 'w')
+          # $stdout.reopen(subprocess_logfile)
+          # $stderr.reopen(subprocess_logfile)
         end
 
         def disconnect_subprocess_endpoints
@@ -186,30 +186,30 @@ module TestCenter
 
         def send_subprocess_result(batch_index, result)
           # _, subprocess_writer = @pipe_endpoints[batch_index]
-          subprocess_logfile = $stdout # Remember? We changed $stdout in :connect_subprocess_endpoint to be a File.
+          # subprocess_logfile = $stdout # Remember? We changed $stdout in :connect_subprocess_endpoint to be a File.
 
-          subprocess_output = {
-            'subprocess_logfilepath' => subprocess_logfile.path,
-            'tests_passed' => result
-          }
-          File.foreach(subprocess_logfile, "r:UTF-8") do |line|
-            puts line
-          end
+          # subprocess_output = {
+          #   'subprocess_logfilepath' => subprocess_logfile.path,
+          #   'tests_passed' => result
+          # }
+          # File.foreach(subprocess_logfile, "r:UTF-8") do |line|
+          #   puts line
+          # end
           # subprocess_writer.puts subprocess_output.to_json
           #subprocess_writer.flush
           # subprocess_logfile.close
         end
 
         def parse_subprocess_results(subprocess_index, subprocess_output)
-          subprocess_result = {
-            'tests_passed' => false
-          }
-          if subprocess_output.empty?
-            FastlaneCore::UI.error("Something went terribly wrong: no output from parallelized batch #{subprocess_index}!")
-          else
-            subprocess_result = JSON.parse(subprocess_output)
-          end
-          subprocess_result
+          # subprocess_result = {
+          #   'tests_passed' => false
+          # }
+          # if subprocess_output.empty?
+          #   FastlaneCore::UI.error("Something went terribly wrong: no output from parallelized batch #{subprocess_index}!")
+          # else
+          #   subprocess_result = JSON.parse(subprocess_output)
+          # end
+          # subprocess_result
         end
 
         def stream_subprocess_result_to_console(subprocess_logfilepath)
@@ -222,12 +222,12 @@ module TestCenter
         end
 
         def wait_for_subprocesses
-          disconnect_subprocess_endpoints # to ensure no blocking on the pipe
-          # FastlaneCore::Helper.show_loading_indicator("Scanning in #{@batch_count} batches")
-          # Process.waitall
-          # FastlaneCore::Helper.hide_loading_indicator
-          $stdout.reopen(STDOUT)
-          $stderr.reopen(STDERR)
+          # disconnect_subprocess_endpoints # to ensure no blocking on the pipe
+          # # FastlaneCore::Helper.show_loading_indicator("Scanning in #{@batch_count} batches")
+          # # Process.waitall
+          # # FastlaneCore::Helper.hide_loading_indicator
+          # $stdout.reopen(STDOUT)
+          # $stderr.reopen(STDERR)
         end
 
         def handle_subprocesses_results
