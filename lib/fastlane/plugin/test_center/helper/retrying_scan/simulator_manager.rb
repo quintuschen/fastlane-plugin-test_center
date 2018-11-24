@@ -157,15 +157,15 @@ module TestCenter
         end
 
         def setup_pipes_for_fork
-          @pipe_endpoints = []
-          (0...@batch_count).each do
-            @pipe_endpoints << IO.pipe
-          end
+          # @pipe_endpoints = []
+          # (0...@batch_count).each do
+          #   @pipe_endpoints << IO.pipe
+          # end
         end
 
         def connect_subprocess_endpoint(batch_index)
-          mainprocess_reader, = @pipe_endpoints[batch_index]
-          mainprocess_reader.close # we are now in the subprocess
+          # mainprocess_reader, = @pipe_endpoints[batch_index]
+          # mainprocess_reader.close # we are now in the subprocess
 
           subprocess_output_dir = Dir.mktmpdir
           puts "log files written to #{subprocess_output_dir}"
@@ -181,20 +181,23 @@ module TestCenter
           # writer.
           # This has to be done after the fork, because we don't want the subprocess
           # to receive its endpoint already closed.
-          @pipe_endpoints.each { |_, subprocess_writer| subprocess_writer.close }
+          # @pipe_endpoints.each { |_, subprocess_writer| subprocess_writer.close }
         end
 
         def send_subprocess_result(batch_index, result)
-          _, subprocess_writer = @pipe_endpoints[batch_index]
+          # _, subprocess_writer = @pipe_endpoints[batch_index]
           subprocess_logfile = $stdout # Remember? We changed $stdout in :connect_subprocess_endpoint to be a File.
 
           subprocess_output = {
             'subprocess_logfilepath' => subprocess_logfile.path,
             'tests_passed' => result
           }
-          subprocess_writer.puts subprocess_output.to_json
-          subprocess_writer.flush
-          subprocess_logfile.close
+          File.foreach(subprocess_logfile, "r:UTF-8") do |line|
+            puts line
+          end
+          # subprocess_writer.puts subprocess_output.to_json
+          #subprocess_writer.flush
+          # subprocess_logfile.close
         end
 
         def parse_subprocess_results(subprocess_index, subprocess_output)
@@ -230,13 +233,13 @@ module TestCenter
         def handle_subprocesses_results
           tests_passed = false
           FastlaneCore::UI.header("Output from parallelized batch run")
-          @pipe_endpoints.each_with_index do |endpoints, index|
-            mainprocess_reader, = endpoints
-            subprocess_result = parse_subprocess_results(index, mainprocess_reader.read)
-            mainprocess_reader.close
-            stream_subprocess_result_to_console(subprocess_result['subprocess_logfilepath'])
-            tests_passed = subprocess_result['tests_passed']
-          end
+          # @pipe_endpoints.each_with_index do |endpoints, index|
+          #   mainprocess_reader, = endpoints
+          #   subprocess_result = parse_subprocess_results(index, mainprocess_reader.read)
+          #   mainprocess_reader.close
+          #   stream_subprocess_result_to_console(subprocess_result['subprocess_logfilepath'])
+          #   tests_passed = subprocess_result['tests_passed']
+          # end
           puts '=' * 80
           tests_passed
         end
