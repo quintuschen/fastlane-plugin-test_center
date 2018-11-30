@@ -5,6 +5,7 @@ module TestCenter
       require 'fastlane_core/ui/ui.rb'
       require 'plist'
       require 'json'
+      require 'pry-byebug'
 
       class Runner
         Parallelization = TestCenter::Helper::RetryingScan::Parallelization
@@ -95,7 +96,15 @@ module TestCenter
             @parallelizer.setup_simulators(@scan_options[:devices] || Array(@scan_options[:device]), batch_deploymentversions)
             # @parallelizer.setup_pipes_for_fork
 
+            puts "[\u{1F50D}]Scanning in #{@batch_count} batches"
+            # FastlaneCore::Helper.show_loading_indicator("Scanning in #{@batch_count} batches")
+            subprocess_output_dir = Dir.mktmpdir
+            subprocess_logfilepath = File.join(subprocess_output_dir, "batchscan.log")
+            puts "subprocess_logfilepath: #{subprocess_logfilepath}"
+            subprocess_logfile = File.open(subprocess_logfilepath, 'w')
             @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
+              $stdout.reopen(subprocess_logfile)
+              $stderr.reopen(subprocess_logfile)
               # fork do
                 @parallelizer.connect_subprocess_endpoint(current_batch_index)
                 begin
@@ -107,8 +116,13 @@ module TestCenter
                 # sleep(5) # give time for the xcodebuild command and children 
                 # # processes to disconnect from the Simulator subsystems 
                 # exit(true) # last command to ensure subprocess ends quickly.
+                # $stdout.reopen(STDOUT)
+                # puts "Streaming!"
+
+                # @parallelizer.stream_subprocess_result_to_console(subprocess_logfilepath)
               # end
             end
+            FastlaneCore::Helper.hide_loading_indicator
             @parallelizer.wait_for_subprocesses
             # tests_passed = @parallelizer.handle_subprocesses_results && tests_passed
             @parallelizer.cleanup_simulators

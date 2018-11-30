@@ -2,6 +2,7 @@ module TestCenter
   module Helper
     module RetryingScan
       require 'scan'
+      require 'pry-byebug'
 
       class Parallelization
         def initialize(batch_count)
@@ -34,6 +35,7 @@ module TestCenter
             @simulators[batch_index] ||= []
             found_simulator_devices.each do |found_simulator_device|
               device_for_batch = found_simulator_device.clone
+              puts "cloned device: #{found_simulator_devices}"
               new_name = "#{found_simulator_device.name}-batchclone-#{batch_index + 1}"
               device_for_batch.rename(new_name)
               @simulators[batch_index] << device_for_batch
@@ -168,7 +170,6 @@ module TestCenter
           # mainprocess_reader.close # we are now in the subprocess
 
           # subprocess_output_dir = Dir.mktmpdir
-          # puts "log files written to #{subprocess_output_dir}"
           # subprocess_logfilepath = File.join(subprocess_output_dir, "batchscan_#{batch_index}.log")
           # subprocess_logfile = File.open(subprocess_logfilepath, 'w')
           # $stdout.reopen(subprocess_logfile)
@@ -226,8 +227,10 @@ module TestCenter
           # # FastlaneCore::Helper.show_loading_indicator("Scanning in #{@batch_count} batches")
           # # Process.waitall
           # # FastlaneCore::Helper.hide_loading_indicator
+          # subprocess_logfile = $stdout # Remember? We changed $stdout in :connect_subprocess_endpoint to be a File.
           # $stdout.reopen(STDOUT)
           # $stderr.reopen(STDERR)
+          # stream_subprocess_result_to_console(subprocess_logfile.path)
         end
 
         def handle_subprocesses_results
@@ -254,6 +257,7 @@ module FastlaneCore
       def clone
         raise 'Can only clone iOS Simulators' unless self.is_simulator
 
+        puts "about to clone simulator: xcrun simctl clone #{self.udid} '#{self.name}'"
         Device.new(
           name: self.name,
           udid: `xcrun simctl clone #{self.udid} '#{self.name}'`.chomp,
@@ -265,6 +269,7 @@ module FastlaneCore
       end
 
       def rename(newname)
+        puts "about the rename the sim: xcrun simctl rename #{self.udid} '#{newname}'"
         `xcrun simctl rename #{self.udid} '#{newname}'`
         self.name = newname
       end
