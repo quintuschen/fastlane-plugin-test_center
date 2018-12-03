@@ -214,10 +214,10 @@ module TestCenter
         end
 
         def stream_subprocess_result_to_console(subprocess_logfilepath)
-          puts '-' * 80
+          STDOUT.puts '-' * 80
           if File.exist?(subprocess_logfilepath)
             File.foreach(subprocess_logfilepath, "r:UTF-8") do |line|
-              puts line
+              STDOUT.puts line
             end
           end
         end
@@ -228,9 +228,9 @@ module TestCenter
           # # Process.waitall
           # # FastlaneCore::Helper.hide_loading_indicator
           # subprocess_logfile = $stdout # Remember? We changed $stdout in :connect_subprocess_endpoint to be a File.
-          # $stdout.reopen(STDOUT)
+          STDOUT.puts "done?"
           # $stderr.reopen(STDERR)
-          # stream_subprocess_result_to_console(subprocess_logfile.path)
+          # stream_subprocess_result_to_console($subprocess_logfile.path)
         end
 
         def handle_subprocesses_results
