@@ -170,9 +170,12 @@ module TestCenter
           subprocess_output_dir = Dir.mktmpdir
           puts "log files written to #{subprocess_output_dir}"
           subprocess_logfilepath = File.join(subprocess_output_dir, "batchscan_#{batch_index}.log")
-          subprocess_logfile = File.open(subprocess_logfilepath, 'w')
-          $stdout.reopen(subprocess_logfile)
-          $stderr.reopen(subprocess_logfile)
+          $subprocess_logfile = File.open(subprocess_logfilepath, 'w')
+          $subprocess_logfile.sync = true
+          $old_stdout = $stdout.dup
+          $old_stderr = $stderr.dup
+          $stdout.reopen($subprocess_logfile)
+          $stderr.reopen($subprocess_logfile)
         end
 
         def disconnect_subprocess_endpoints
@@ -185,16 +188,17 @@ module TestCenter
         end
 
         def send_subprocess_result(batch_index, result)
+          $stdout = $old_stdout.dup
+          $stderr = $old_stderr.dup
           _, subprocess_writer = @pipe_endpoints[batch_index]
-          subprocess_logfile = $stdout # Remember? We changed $stdout in :connect_subprocess_endpoint to be a File.
 
           subprocess_output = {
-            'subprocess_logfilepath' => subprocess_logfile.path,
+            'subprocess_logfilepath' => $subprocess_logfile.path,
             'tests_passed' => result
           }
           subprocess_writer.puts subprocess_output.to_json
           subprocess_writer.flush
-          subprocess_logfile.close
+          $subprocess_logfile.close
         end
 
         def parse_subprocess_results(subprocess_index, subprocess_output)
