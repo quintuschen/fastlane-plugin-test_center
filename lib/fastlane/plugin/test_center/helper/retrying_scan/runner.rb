@@ -110,7 +110,7 @@ module TestCenter
               # end
             end
             @parallelizer.wait_for_subprocesses
-            # tests_passed = @parallelizer.handle_subprocesses_results && tests_passed
+            tests_passed = @parallelizer.handle_subprocesses_results && tests_passed
             @parallelizer.cleanup_simulators
           else
             @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
