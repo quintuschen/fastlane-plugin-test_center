@@ -101,12 +101,10 @@ module TestCenter
             subprocess_output_dir = Dir.mktmpdir
             subprocess_logfilepath = File.join(subprocess_output_dir, "batchscan.log")
             puts "subprocess_logfilepath: #{subprocess_logfilepath}"
-            $subprocess_logfile = File.open(subprocess_logfilepath, 'w')
-            $subprocess_logfile.sync = true
-            $oldstdout = $stdout.dup
-            $stdout.reopen($subprocess_logfile)
-            # $stderr.reopen(subprocess_logfile)
+            subprocess_logfile = File.open(subprocess_logfilepath, 'w')
             @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
+              $stdout.reopen(subprocess_logfile)
+              $stderr.reopen(subprocess_logfile)
               # fork do
                 @parallelizer.connect_subprocess_endpoint(current_batch_index)
                 begin
@@ -125,6 +123,7 @@ module TestCenter
               # end
             end
             FastlaneCore::Helper.hide_loading_indicator
+            @parallelizer.wait_for_subprocesses
             # tests_passed = @parallelizer.handle_subprocesses_results && tests_passed
             @parallelizer.cleanup_simulators
           else
@@ -132,9 +131,6 @@ module TestCenter
               tests_passed = yield(test_batch, current_batch_index)
             end
           end
-          $stdout = $oldstdout.dup
-          puts "after $stdout reset?"
-          @parallelizer.wait_for_subprocesses
           tests_passed
         end
 
