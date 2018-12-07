@@ -5,6 +5,7 @@ module TestCenter
       require 'fastlane_core/ui/ui.rb'
       require 'plist'
       require 'json'
+      require 'pry-byebug'
 
       class Runner
         Parallelization = TestCenter::Helper::RetryingScan::Parallelization
@@ -12,7 +13,6 @@ module TestCenter
         attr_reader :retry_total_count
 
         def initialize(multi_scan_options)
-          @output_directory = multi_scan_options[:output_directory] || 'test_results'
           @try_count = multi_scan_options[:try_count]
           @retry_total_count = 0
           @testrun_completed_block = multi_scan_options[:testrun_completed_block]
@@ -54,11 +54,7 @@ module TestCenter
             puts "current_batch_index: #{current_batch_index}"
           end
           all_tests_passed = each_batch do |test_batch, current_batch_index|
-            output_directory = @output_directory
-            unless @testables_count == 1
-              output_directory_suffix = test_batch.first.split('/').first
-              output_directory = File.join(@output_directory, "results-#{output_directory_suffix}")
-            end
+            output_directory = testrun_output_directory(test_batch, current_batch_index)
             reset_for_new_testable(output_directory)
             FastlaneCore::UI.header("Starting test run on batch '#{current_batch_index}'")
             @interstitial.batch = current_batch_index
@@ -94,7 +90,6 @@ module TestCenter
             end
             @parallelizer.setup_simulators(@scan_options[:devices] || Array(@scan_options[:device]), batch_deploymentversions)
             @parallelizer.setup_pipes_for_fork
-
             @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
               fork do
                 @parallelizer.connect_subprocess_endpoint(current_batch_index)
@@ -120,11 +115,13 @@ module TestCenter
           tests_passed
         end
 
-        def testrun_output_directory
-          if @test_collector.testables.size.one?
+        def testrun_output_directory(test_batch, batch_index)
+          @output_directory = @scan_options[:output_directory] || 'test_results'
+          if @test_collector.testables.one?
             @output_directory
           else
-            File.join(@output_directory, "results-#{testable}")
+            testable_name = test_batch.first.split('/').first
+            File.join(@output_directory, "results-#{testable_name}-batch-#{batch_index}")
           end
         end
 
