@@ -117,6 +117,11 @@ module TestCenter
 
         def testrun_output_directory(test_batch, batch_index)
           @output_directory = @scan_options[:output_directory] || 'test_results'
+          puts "testrun_output_directory: @output_directory => #{@output_directory}"
+          puts "testrun_output_directory: testables => #{@test_collector.testables}"
+          puts "testrun_output_directory: one? #{@test_collector.testables.one?}"
+          puts "testrun_output_directory: test_batch #{test_batch}"
+          puts "testrun_output_directory: batch_index #{batch_index}"
           if @test_collector.testables.one?
             @output_directory
           else
