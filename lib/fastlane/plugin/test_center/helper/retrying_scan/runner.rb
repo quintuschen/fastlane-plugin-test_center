@@ -122,12 +122,8 @@ module TestCenter
           puts "testrun_output_directory: one? #{@test_collector.testables.one?}"
           puts "testrun_output_directory: test_batch #{test_batch}"
           puts "testrun_output_directory: batch_index #{batch_index}"
-          if @test_collector.testables.one?
-            @output_directory
-          else
-            testable_name = test_batch.first.split('/').first
-            File.join(@output_directory, "results-#{testable_name}-batch-#{batch_index}")
-          end
+          testable_name = test_batch.first.split('/').first
+          File.join(@output_directory, "results-#{testable_name}-batch-#{batch_index}")
         end
 
         def reset_reportnamer
