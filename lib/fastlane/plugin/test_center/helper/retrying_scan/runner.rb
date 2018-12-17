@@ -13,6 +13,7 @@ module TestCenter
         attr_reader :retry_total_count
 
         def initialize(multi_scan_options)
+          @output_directory = multi_scan_options[:output_directory] || 'test_results'
           @try_count = multi_scan_options[:try_count]
           @retry_total_count = 0
           @testrun_completed_block = multi_scan_options[:testrun_completed_block]
