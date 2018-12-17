@@ -5,7 +5,6 @@ module TestCenter
       require 'fastlane_core/ui/ui.rb'
       require 'plist'
       require 'json'
-      require 'pry-byebug'
 
       class Runner
         Parallelization = TestCenter::Helper::RetryingScan::Parallelization
@@ -55,7 +54,11 @@ module TestCenter
             puts "current_batch_index: #{current_batch_index}"
           end
           all_tests_passed = each_batch do |test_batch, current_batch_index|
-            output_directory = testrun_output_directory(@output_directory, test_batch, current_batch_index)
+            output_directory = @output_directory
+            unless @testables_count == 1
+              output_directory_suffix = test_batch.first.split('/').first
+              output_directory = File.join(@output_directory, "results-#{output_directory_suffix}")
+            end
             reset_for_new_testable(output_directory)
             FastlaneCore::UI.header("Starting test run on batch '#{current_batch_index}'")
             @interstitial.batch = current_batch_index
