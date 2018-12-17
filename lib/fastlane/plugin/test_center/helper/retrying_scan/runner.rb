@@ -55,7 +55,7 @@ module TestCenter
             puts "current_batch_index: #{current_batch_index}"
           end
           all_tests_passed = each_batch do |test_batch, current_batch_index|
-            output_directory = testrun_output_directory(test_batch, current_batch_index)
+            output_directory = testrun_output_directory(@output_directory, test_batch, current_batch_index)
             reset_for_new_testable(output_directory)
             FastlaneCore::UI.header("Starting test run on batch '#{current_batch_index}'")
             @interstitial.batch = current_batch_index
@@ -116,15 +116,11 @@ module TestCenter
           tests_passed
         end
 
-        def testrun_output_directory(test_batch, batch_index)
-          @output_directory = @scan_options[:output_directory] || 'test_results'
-          puts "testrun_output_directory: @output_directory => #{@output_directory}"
-          puts "testrun_output_directory: testables => #{@test_collector.testables}"
-          puts "testrun_output_directory: one? #{@test_collector.testables.one?}"
-          puts "testrun_output_directory: test_batch #{test_batch}"
-          puts "testrun_output_directory: batch_index #{batch_index}"
+        def testrun_output_directory(base_output_directory, test_batch, batch_index)
+          return base_output_directory if @batch_count == 1
+
           testable_name = test_batch.first.split('/').first
-          File.join(@output_directory, "results-#{testable_name}-batch-#{batch_index}")
+          File.join(base_output_directory, "results-#{testable_name}-batch-#{batch_index}")
         end
 
         def reset_reportnamer
