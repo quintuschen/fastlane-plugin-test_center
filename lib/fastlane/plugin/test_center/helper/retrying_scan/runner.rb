@@ -100,7 +100,7 @@ module TestCenter
             @parallelizer.setup_simulators(@scan_options[:devices] || Array(@scan_options[:device]), batch_deploymentversions)
             @parallelizer.setup_pipes_for_fork
             @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
-              next if current_batch_index > 0
+              next if current_batch_index > 1
               fork do
                 @parallelizer.connect_subprocess_endpoint(current_batch_index)
                 begin
