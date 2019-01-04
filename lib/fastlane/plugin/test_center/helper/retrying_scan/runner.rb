@@ -102,6 +102,7 @@ module TestCenter
             @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
               fork do
                 $batch_index = current_batch_index
+                sleep current_batch_index
                 @parallelizer.connect_subprocess_endpoint(current_batch_index)
                 begin
                   @parallelizer.setup_scan_options_for_testrun(@scan_options, current_batch_index)
