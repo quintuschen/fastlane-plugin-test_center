@@ -100,8 +100,8 @@ module TestCenter
             @parallelizer.setup_simulators(@scan_options[:devices] || Array(@scan_options[:device]), batch_deploymentversions)
             @parallelizer.setup_pipes_for_fork
             @test_collector.test_batches.each_with_index do |test_batch, current_batch_index|
-              next if current_batch_index > 1
               fork do
+                $batch_index = current_batch_index
                 @parallelizer.connect_subprocess_endpoint(current_batch_index)
                 begin
                   @parallelizer.setup_scan_options_for_testrun(@scan_options, current_batch_index)
@@ -225,6 +225,22 @@ module TestCenter
           )
           Fastlane::Actions::TestsFromJunitAction.run(config)[:failed]
         end
+      end
+    end
+  end
+end
+
+
+module FastlaneCore
+  class Shell < Interface
+    def format_string(datetime = Time.now, severity = "")
+      prefix = $batch_index.nil? ? '' : "#{$batch_index}: "
+      if FastlaneCore::Globals.verbose?
+        return "#{prefix}#{severity} [#{datetime.strftime('%Y-%m-%d %H:%M:%S.%2N')}]: "
+      elsif FastlaneCore::Env.truthy?("FASTLANE_HIDE_TIMESTAMP")
+        return prefix
+      else
+        return "#{prefix}[#{datetime.strftime('%H:%M:%S')}]: "
       end
     end
   end
