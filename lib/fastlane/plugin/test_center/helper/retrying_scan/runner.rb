@@ -6,6 +6,7 @@ module TestCenter
       require 'plist'
       require 'json'
       require 'pry-byebug'
+      require 'shellwords'
 
       class Runner
         Parallelization = TestCenter::Helper::RetryingScan::Parallelization
@@ -196,7 +197,15 @@ module TestCenter
               Fastlane::Actions::ScanAction.available_options,
               scan_options.merge(reportnamer.scan_options)
             )
-            Fastlane::Actions::ScanAction.run(config)
+            Scan.config = config
+            test_command_generator = Scan::TestCommandGenerator.new
+            command = test_command_generator.generate
+
+            puts Shellwords.escape(command.join)
+            result = `#{Shellwords.escape(command.join)}`
+            raise FastlaneCore::Interface::FastlaneTestFailure, "tests failed" unless result == 0
+
+            # Fastlane::Actions::ScanAction.run(config)
             @interstitial.finish_try(try_count)
             tests_passed = true
           rescue FastlaneCore::Interface::FastlaneTestFailure => e
