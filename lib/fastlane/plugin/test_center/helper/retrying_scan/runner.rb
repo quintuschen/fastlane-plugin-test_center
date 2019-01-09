@@ -201,8 +201,8 @@ module TestCenter
             test_command_generator = Scan::TestCommandGenerator.new
             command = test_command_generator.generate
 
-            puts Shellwords.escape(command.join)
-            result = `#{Shellwords.escape(command.join)}`
+            puts command.join(' ')
+            result = `#{command.join(' ')}`
             raise FastlaneCore::Interface::FastlaneTestFailure, "tests failed" unless result == 0
 
             # Fastlane::Actions::ScanAction.run(config)
