@@ -5,7 +5,6 @@ module TestCenter
       require 'fastlane_core/ui/ui.rb'
       require 'plist'
       require 'json'
-      require 'pry-byebug'
 
       class Runner
         Parallelization = TestCenter::Helper::RetryingScan::Parallelization
